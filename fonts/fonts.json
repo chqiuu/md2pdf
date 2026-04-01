@@ -1,0 +1,59 @@
+{
+  "fonts": [
+    {
+      "name": "Source Han Serif SC",
+      "family": "SourceHanSerifSC",
+      "file": "SourceHanSerifSC-Regular.otf",
+      "weight": "normal",
+      "style": "normal",
+      "description": "思源宋体，用于学术/电子书模板",
+      "status": "pending"
+    },
+    {
+      "name": "Source Han Sans SC",
+      "family": "SourceHanSansSC",
+      "file": "SourceHanSansSC-Regular.otf",
+      "weight": "normal",
+      "style": "normal",
+      "description": "思源黑体，用于现代/简洁模板",
+      "status": "pending"
+    },
+    {
+      "name": "Fira Code",
+      "family": "Fira Code",
+      "file": "FiraCode-Regular.ttf",
+      "weight": "normal",
+      "style": "normal",
+      "description": "等宽字体，用于代码块",
+      "status": "included"
+    },
+    {
+      "name": "JetBrains Mono",
+      "family": "JetBrains Mono",
+      "file": "JetBrainsMono-Regular.ttf",
+      "weight": "normal",
+      "style": "normal",
+      "description": "等宽字体，代码块备选",
+      "status": "pending"
+    },
+    {
+      "name": "Noto Serif SC",
+      "family": "Noto Serif SC",
+      "file": "NotoSerifSC-Regular.otf",
+      "weight": "normal",
+      "style": "normal",
+      "description": "思源宋体中文版，Google Fonts",
+      "status": "pending"
+    },
+    {
+      "name": "Noto Sans SC",
+      "family": "Noto Sans SC",
+      "file": "NotoSansSC-Regular.otf",
+      "weight": "normal",
+      "style": "normal",
+      "description": "思源黑体中文版，Google Fonts",
+      "status": "pending"
+    }
+  ],
+  "note": "status: included(已内置) / pending(待下载) / optional(可选)"
+}

@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#4a90d9">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>md2pdf - Markdown 转 PDF</title>
+  <link rel="stylesheet" href="styles/main.css">
+</head>
+<body>
+  <div class="app">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-left">
+        <h1 class="logo">📄 md2pdf</h1>
+        <span class="tagline">Markdown → PDF 转换工具</span>
+      </div>
+      <div class="header-center">
+        <select id="templateSelect" class="template-select">
+          <option value="">选择模板...</option>
+        </select>
+        <button id="refreshTemplates" class="btn-icon" title="刷新模板">🔄</button>
+      </div>
+      <div class="header-right">
+        <button id="settingsBtn" class="btn-icon" title="设置">⚙️</button>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main">
+      <!-- File Area -->
+      <aside class="file-area">
+        <div class="file-upload" id="dropZone">
+          <div class="upload-hint">
+            <span class="upload-icon">📄</span>
+            <button id="selectFileBtn" class="btn btn-primary btn-sm">选择 MD 文件</button>
+          </div>
+          <input type="file" id="fileInput" accept=".md,.markdown" style="display:none">
+        </div>
+
+        <div class="recent-files">
+          <h3>最近文件</h3>
+          <ul id="recentFilesList" class="recent-list">
+            <li class="empty-hint">暂无最近文件</li>
+          </ul>
+        </div>
+      </aside>
+
+      <!-- Editor Area -->
+      <section class="editor-area">
+        <div class="editor-header">
+          <span>Markdown 编辑器</span>
+          <span id="editorStatus" class="status">就绪</span>
+        </div>
+        <div class="editor-container">
+          <textarea id="editor" class="editor" placeholder="在此输入 Markdown 内容，或拖拽文件上传..."></textarea>
+        </div>
+      </section>
+
+      <!-- Preview Area -->
+      <section class="preview-area">
+        <div class="preview-header">
+          <span>PDF 预览</span>
+          <div class="preview-controls">
+            <button id="zoomOut" class="btn-icon" title="缩小">➖</button>
+            <span id="zoomLevel">100%</span>
+            <button id="zoomIn" class="btn-icon" title="放大">➕</button>
+            <button id="refreshPreview" class="btn-icon" title="刷新预览">🔄</button>
+          </div>
+        </div>
+        <div class="preview-container">
+          <iframe id="previewFrame" class="preview-frame" title="PDF Preview"></iframe>
+        </div>
+      </section>
+
+      <!-- Control Panel -->
+      <aside class="control-panel">
+        <!-- Tabs -->
+        <div class="panel-tabs">
+          <button class="tab-btn active" data-tab="export">导出</button>
+          <button class="tab-btn" data-tab="template">模板</button>
+          <button class="tab-btn" data-tab="tuning">微调</button>
+          <button class="tab-btn" data-tab="ai">AI</button>
+        </div>
+
+        <!-- Export Tab -->
+        <div class="tab-content active" id="tab-export">
+          <div class="form-group">
+            <label>文件名</label>
+            <input type="text" id="outputFilename" class="input" value="document" placeholder="文件名">
+          </div>
+
+          <div class="form-group">
+            <label>纸张大小</label>
+            <select id="paperSize" class="select">
+              <option value="A4" selected>A4</option>
+              <option value="Letter">Letter</option>
+              <option value="Legal">Legal</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>
+              <input type="checkbox" id="includeBackground" checked>
+              包含背景色
+            </label>
+          </div>
+
+          <div class="form-group">
+            <label>
+              <input type="checkbox" id="includeToc">
+              生成目录
+            </label>
+          </div>
+
+          <div class="form-group" id="tocOptions" style="display:none">
+            <label>目录标题</label>
+            <input type="text" id="tocTitle" class="input" value="目录" placeholder="目录">
+          </div>
+
+          <div class="form-group">
+            <label>水印</label>
+            <input type="text" id="watermarkText" class="input" placeholder="水印文字（可选）">
+          </div>
+
+          <button id="renderBtn" class="btn btn-primary btn-block">
+            生成 PDF
+          </button>
+        </div>
+
+        <!-- Template Tab -->
+        <div class="tab-content" id="tab-template">
+          <div class="form-group">
+            <label>选择预设模板</label>
+            <select id="templateList" class="select">
+              <option value="">请先选择模板...</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>自定义 CSS</label>
+            <textarea id="customCSS" class="textarea code" rows="8" placeholder="/* 在此编辑自定义 CSS */"></textarea>
+          </div>
+
+          <div class="btn-group">
+            <button id="applyCSS" class="btn btn-secondary">应用样式</button>
+            <button id="resetCSS" class="btn btn-secondary">重置</button>
+          </div>
+
+          <hr>
+
+          <div class="form-group">
+            <label>保存当前样式为模板</label>
+            <div class="input-group">
+              <input type="text" id="newTemplateName" class="input" placeholder="模板名称">
+              <button id="saveTemplateBtn" class="btn btn-primary">保存</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tuning Tab -->
+        <div class="tab-content" id="tab-tuning">
+          <div class="tuning-group">
+            <h4>字体与字号</h4>
+
+            <div class="form-group">
+              <label>正文字号</label>
+              <div class="slider-group">
+                <input type="range" id="fontSize" min="10" max="16" step="0.5" value="12">
+                <span id="fontSizeValue">12pt</span>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>行距</label>
+              <div class="slider-group">
+                <input type="range" id="lineHeight" min="1.2" max="2.0" step="0.1" value="1.6">
+                <span id="lineHeightValue">1.6</span>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>页边距</label>
+              <div class="slider-group">
+                <input type="range" id="pageMargin" min="1" max="4" step="0.25" value="2.5">
+                <span id="pageMarginValue">2.5cm</span>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>标题字号</label>
+              <div class="slider-group">
+                <input type="range" id="titleSize" min="14" max="24" step="0.5" value="16">
+                <span id="titleSizeValue">16pt</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="tuning-group">
+            <h4>颜色</h4>
+
+            <div class="form-group">
+              <label>正文字色</label>
+              <div class="color-group">
+                <input type="color" id="textColor" value="#333333">
+                <input type="text" id="textColorValue" class="input color-input" value="#333333">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>代码背景</label>
+              <div class="color-group">
+                <input type="color" id="codeBg" value="#f5f5f5">
+                <input type="text" id="codeBgValue" class="input color-input" value="#f5f5f5">
+              </div>
+            </div>
+          </div>
+
+          <button id="applyTuning" class="btn btn-primary btn-block">应用微调</button>
+        </div>
+
+        <!-- AI Tab -->
+        <div class="tab-content" id="tab-ai">
+          <div class="form-group">
+            <label>AI 服务配置</label>
+            <select id="aiProvider" class="select">
+              <option value="minimax">MiniMax</option>
+              <option value="kimi">Kimi</option>
+              <option value="custom">自定义</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>API Key</label>
+            <input type="password" id="aiApiKey" class="input" placeholder="输入 API Key">
+          </div>
+
+          <hr>
+
+          <div class="form-group">
+            <label>模板需求描述</label>
+            <textarea id="aiRequirement" class="textarea" rows="4" placeholder="例如：生成一个学术论文风格的模板，正文字号12pt，中文字体使用思源宋体"></textarea>
+          </div>
+
+          <button id="generateTemplateBtn" class="btn btn-primary btn-block">
+            🎨 AI 生成模板
+          </button>
+
+          <div id="aiLoading" class="loading" style="display:none">
+            <span class="spinner"></span>
+            <span>AI 生成中...</span>
+          </div>
+        </div>
+      </aside>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <span id="statusText">就绪</span>
+      <span id="charCount">0 字符</span>
+      <span id="pageCount">0 页</span>
+    </footer>
+  </div>
+
+  <!-- Settings Modal -->
+  <div id="settingsModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>设置</h2>
+        <button class="modal-close" data-close>&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>服务器地址</label>
+          <input type="text" id="serverUrl" class="input" value="http://localhost:3000">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-close>取消</button>
+        <button id="saveSettings" class="btn btn-primary">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/utils.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

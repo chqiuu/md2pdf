@@ -1,0 +1,169 @@
+/* md2pdf - Minimal Template */
+/* 极简风格 */
+
+:root {
+  --font-main: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-code: "SF Mono", "Fira Code", Consolas, monospace;
+  --font-size: 11pt;
+  --line-height: 1.5;
+  --page-margin: 1.5cm;
+  --title-size: 16pt;
+  --text-color: #000000;
+  --code-bg: #f0f0f0;
+}
+
+body {
+  font-family: var(--font-main);
+  font-size: var(--font-size);
+  line-height: var(--line-height);
+  color: var(--text-color);
+  background: white;
+  padding: 24pt;
+}
+
+.md-content {
+  font-family: var(--font-main);
+  font-size: var(--font-size);
+  line-height: var(--line-height);
+  color: var(--text-color);
+}
+
+h1 {
+  font-size: var(--title-size);
+  font-weight: 600;
+  margin: 0 0 16pt;
+  page-break-after: avoid;
+}
+
+h2 {
+  font-size: 14pt;
+  font-weight: 600;
+  margin: 20pt 0 10pt;
+  page-break-after: avoid;
+}
+
+h3 {
+  font-size: 12pt;
+  font-weight: 600;
+  margin: 16pt 0 8pt;
+  page-break-after: avoid;
+}
+
+h4, h5, h6 {
+  font-size: 11pt;
+  font-weight: 600;
+  margin: 12pt 0 6pt;
+  page-break-after: avoid;
+}
+
+p {
+  margin: 10pt 0;
+}
+
+a {
+  color: #000;
+  text-decoration: underline;
+}
+
+strong {
+  font-weight: 600;
+}
+
+em {
+  font-style: italic;
+}
+
+del {
+  text-decoration: line-through;
+}
+
+ul, ol {
+  margin: 10pt 0;
+  padding-left: 24pt;
+}
+
+li {
+  margin: 5pt 0;
+}
+
+code {
+  font-family: var(--font-code);
+  font-size: 10pt;
+  background: var(--code-bg);
+  padding: 1pt 4pt;
+  border-radius: 2px;
+}
+
+pre.code-block {
+  background: var(--code-bg);
+  padding: 8pt;
+  margin: 10pt 0;
+  page-break-inside: avoid;
+}
+
+pre.code-block code {
+  background: none;
+  padding: 0;
+  font-size: 10pt;
+}
+
+blockquote {
+  border-left: 2px solid #ddd;
+  padding-left: 12pt;
+  margin: 10pt 0;
+  color: #666;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 10pt 0;
+  page-break-inside: avoid;
+}
+
+th, td {
+  border: 1px solid #ddd;
+  padding: 6pt 8pt;
+  text-align: left;
+}
+
+th {
+  background: #fafafa;
+  font-weight: 600;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+  page-break-inside: avoid;
+}
+
+hr {
+  border: none;
+  border-top: 1px solid #ddd;
+  margin: 16pt 0;
+}
+
+input[type="checkbox"] {
+  margin-right: 6pt;
+}
+
+@page {
+  size: A4;
+  margin: 1.5cm;
+}
+
+@media print {
+  body {
+    background: white;
+    padding: 0;
+  }
+
+  h1, h2, h3 {
+    page-break-after: avoid;
+  }
+
+  table, pre {
+    page-break-inside: avoid;
+  }
+}

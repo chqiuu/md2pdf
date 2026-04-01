@@ -1,0 +1,193 @@
+/* md2pdf - Modern Template */
+/* 简洁现代风格 */
+
+:root {
+  --font-main: "Noto Sans SC", "PingFang SC", "微软雅黑", sans-serif;
+  --font-code: "JetBrains Mono", "Fira Code", monospace;
+  --font-size: 11pt;
+  --line-height: 1.8;
+  --page-margin: 2cm;
+  --title-size: 24pt;
+  --text-color: #1a1a1a;
+  --code-bg: #f8f9fa;
+  --code-color: #1a1a1a;
+}
+
+body {
+  font-family: var(--font-main);
+  font-size: var(--font-size);
+  line-height: var(--line-height);
+  color: var(--text-color);
+  background: white;
+}
+
+.md-content {
+  font-family: var(--font-main);
+  font-size: var(--font-size);
+  line-height: var(--line-height);
+  color: var(--text-color);
+}
+
+h1 {
+  font-size: var(--title-size);
+  font-weight: 600;
+  margin: 0 0 24pt;
+  page-break-after: avoid;
+  border-bottom: 3px solid #1a1a1a;
+  padding-bottom: 12pt;
+}
+
+h2 {
+  font-size: 18pt;
+  font-weight: 600;
+  margin: 28pt 0 14pt;
+  page-break-after: avoid;
+}
+
+h3 {
+  font-size: 14pt;
+  font-weight: 600;
+  margin: 20pt 0 10pt;
+  page-break-after: avoid;
+}
+
+h4, h5, h6 {
+  font-size: 12pt;
+  font-weight: 600;
+  margin: 14pt 0 7pt;
+  page-break-after: avoid;
+}
+
+p {
+  margin: 14pt 0;
+}
+
+a {
+  color: #4a90d9;
+  text-decoration: none;
+  border-bottom: 1px solid #4a90d9;
+}
+
+a:hover {
+  color: #3a7bc8;
+  border-bottom-color: #3a7bc8;
+}
+
+strong {
+  font-weight: 600;
+}
+
+em {
+  font-style: italic;
+}
+
+del {
+  text-decoration: line-through;
+  color: #999;
+}
+
+ul, ol {
+  margin: 14pt 0;
+  padding-left: 28pt;
+}
+
+li {
+  margin: 7pt 0;
+}
+
+code {
+  font-family: var(--font-code);
+  font-size: 10pt;
+  background: #f0f0f0;
+  padding: 2pt 6pt;
+  border-radius: 4px;
+}
+
+pre.code-block {
+  background: var(--code-bg);
+  padding: 16pt;
+  margin: 16pt 0;
+  border-radius: 8px;
+  border-left: 4px solid #4a90d9;
+  page-break-inside: avoid;
+}
+
+pre.code-block code {
+  background: none;
+  padding: 0;
+  font-size: 10pt;
+  color: var(--code-color);
+}
+
+blockquote {
+  border-left: 4px solid #4a90d9;
+  padding: 12pt 16pt;
+  background: var(--code-bg);
+  margin: 16pt 0;
+  border-radius: 0 8px 8px 0;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 16pt 0;
+  page-break-inside: avoid;
+}
+
+th, td {
+  border: 1px solid #e0e0e0;
+  padding: 10pt 8pt;
+  text-align: left;
+}
+
+th {
+  background: #f8f9fa;
+  font-weight: 600;
+  border-bottom: 2px solid #ddd;
+}
+
+tr:nth-child(even) {
+  background: #fafafa;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+  page-break-inside: avoid;
+  display: block;
+  margin: 16pt auto;
+  border-radius: 4px;
+}
+
+hr {
+  border: none;
+  border-top: 1px solid #e0e0e0;
+  margin: 28pt 0;
+}
+
+input[type="checkbox"] {
+  margin-right: 8pt;
+}
+
+@page {
+  size: A4;
+  margin: 2cm;
+}
+
+@media print {
+  body {
+    background: white;
+  }
+
+  h1, h2, h3 {
+    page-break-after: avoid;
+  }
+
+  table, pre {
+    page-break-inside: avoid;
+  }
+
+  img {
+    max-width: 100%;
+  }
+}
