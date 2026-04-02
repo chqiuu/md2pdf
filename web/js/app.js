@@ -11,8 +11,7 @@
     currentTemplate: '',
     customCSS: '',
     templates: [],
-    previewZoom: 100,
-    previewUrl: null
+    previewZoom: 100
   };
 
   // DOM Elements cache
@@ -90,6 +89,7 @@
     setupModalEvents();
     setupTabEvents();
     setupZoomEvents();
+    setupPreviewResizeObserver();
 
     // Load demo content
     loadDemoContent();
@@ -295,27 +295,174 @@
     });
   }
 
-  // Zoom
+  // Zoom（100% = 按预览区宽度适配，±10% 为相对该宽度缩放）
   function setupZoomEvents() {
     $('zoomIn').addEventListener('click', () => {
       state.previewZoom = Math.min(state.previewZoom + 10, 200);
-      $('previewFrame').style.transform = `scale(${state.previewZoom / 100})`;
       $('zoomLevel').textContent = state.previewZoom + '%';
+      redrawPdfCanvasPages();
     });
     $('zoomOut').addEventListener('click', () => {
       state.previewZoom = Math.max(state.previewZoom - 10, 50);
-      $('previewFrame').style.transform = `scale(${state.previewZoom / 100})`;
       $('zoomLevel').textContent = state.previewZoom + '%';
+      redrawPdfCanvasPages();
     });
   }
 
   // AI
   $('generateTemplateBtn')?.addEventListener('click', generateTemplate);
 
-  // Preview：与导出共用 Playwright PDF 管线，保证版式一致（iframe 内嵌 PDF）
+  // Preview：与导出共用 Playwright PDF 管线；前端用 PDF.js 画布渲染，适配宽度并随深浅色主题铺底
   const PREVIEW_DEBOUNCE_MS = 600;
   let previewTimeout = null;
   let previewRequestId = 0;
+  let pdfJsModule = null;
+  let pdfDocument = null;
+  let previewRenderToken = 0;
+  let previewResizeObserver = null;
+
+  function appStaticPrefix() {
+    const p = window.location.pathname || '';
+    if (p.indexOf('/pdf/') !== -1) {
+      return p.split('/pdf/')[0].replace(/\/$/, '') + '/pdf';
+    }
+    return '';
+  }
+
+  function pdfjsAsset(file) {
+    return `${appStaticPrefix()}/vendor/pdfjs/${file}`;
+  }
+
+  async function ensurePdfJs() {
+    if (pdfJsModule) return pdfJsModule;
+    const mod = await import(pdfjsAsset('pdf.mjs'));
+    mod.GlobalWorkerOptions.workerSrc = pdfjsAsset('pdf.worker.mjs');
+    pdfJsModule = mod;
+    return pdfJsModule;
+  }
+
+  function debounceRedraw(fn, ms) {
+    let t = null;
+    return function debounced() {
+      clearTimeout(t);
+      t = setTimeout(fn, ms);
+    };
+  }
+
+  const schedulePdfRedraw = debounceRedraw(() => {
+    redrawPdfCanvasPages();
+  }, 120);
+
+  function setupPreviewResizeObserver() {
+    const el = $('previewViewport');
+    if (!el || previewResizeObserver) return;
+    previewResizeObserver = new ResizeObserver(() => schedulePdfRedraw());
+    previewResizeObserver.observe(el);
+  }
+
+  function clearPdfPreview() {
+    previewRenderToken++;
+    const pagesEl = $('previewPdfPages');
+    const emptyEl = $('previewEmpty');
+    if (pagesEl) {
+      pagesEl.innerHTML = '';
+      pagesEl.hidden = true;
+    }
+    if (emptyEl) {
+      emptyEl.hidden = false;
+      emptyEl.textContent = '输入内容后将在此显示 PDF 预览';
+    }
+    const pc = $('pageCount');
+    if (pc) pc.textContent = '0 页';
+    if (pdfDocument) {
+      const d = pdfDocument;
+      pdfDocument = null;
+      d.destroy().catch(() => {});
+    }
+  }
+
+  async function redrawPdfCanvasPages() {
+    if (!pdfDocument) return;
+    const viewportEl = $('previewViewport');
+    const pagesEl = $('previewPdfPages');
+    if (!viewportEl || !pagesEl) return;
+
+    const token = ++previewRenderToken;
+    const pad = 24;
+    const innerW = Math.max(32, viewportEl.clientWidth - pad);
+
+    const numPages = pdfDocument.numPages;
+    pagesEl.innerHTML = '';
+
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+    try {
+      for (let i = 1; i <= numPages; i++) {
+        if (token !== previewRenderToken) return;
+        const page = await pdfDocument.getPage(i);
+        const baseVp = page.getViewport({ scale: 1 });
+        const fitScale = innerW / baseVp.width;
+        const scale = fitScale * (state.previewZoom / 100);
+        const cssVp = page.getViewport({ scale });
+        const renderVp = page.getViewport({ scale: scale * dpr });
+
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.floor(renderVp.width);
+        canvas.height = Math.floor(renderVp.height);
+        canvas.style.width = `${cssVp.width}px`;
+        canvas.style.height = `${cssVp.height}px`;
+        canvas.className = 'preview-pdf-page-canvas';
+
+        const wrap = document.createElement('div');
+        wrap.className = 'preview-pdf-page-wrap';
+        wrap.setAttribute('role', 'img');
+        wrap.setAttribute('aria-label', `PDF 第 ${i} 页，共 ${numPages} 页`);
+
+        const ctx = canvas.getContext('2d', { alpha: false });
+        await page.render({ canvasContext: ctx, viewport: renderVp }).promise;
+
+        if (token !== previewRenderToken) return;
+        wrap.appendChild(canvas);
+        pagesEl.appendChild(wrap);
+      }
+    } catch (e) {
+      if (token !== previewRenderToken) return;
+      console.error('PDF redraw error:', e);
+      return;
+    }
+
+    if (token !== previewRenderToken) return;
+    const emptyEl = $('previewEmpty');
+    if (emptyEl) emptyEl.hidden = true;
+    pagesEl.hidden = false;
+    const pc = $('pageCount');
+    if (pc) pc.textContent = numPages + ' 页';
+  }
+
+  async function loadPdfPreviewBlob(blob, reqId) {
+    const emptyEl = $('previewEmpty');
+    await ensurePdfJs();
+    if (reqId !== previewRequestId) return;
+
+    const buf = await blob.arrayBuffer();
+    if (reqId !== previewRequestId) return;
+
+    if (pdfDocument) {
+      const old = pdfDocument;
+      pdfDocument = null;
+      await old.destroy().catch(() => {});
+    }
+
+    const loadingTask = pdfJsModule.getDocument({ data: buf });
+    const doc = await loadingTask.promise;
+    if (reqId !== previewRequestId) {
+      await doc.destroy().catch(() => {});
+      return;
+    }
+
+    pdfDocument = doc;
+    await redrawPdfCanvasPages();
+  }
 
   function buildRenderRequestBody() {
     const tocEnabled = $('includeToc').checked;
@@ -349,7 +496,10 @@
   }
 
   async function updatePreview() {
-    if (!state.markdown) return;
+    if (!state.markdown || !String(state.markdown).trim()) {
+      clearPdfPreview();
+      return;
+    }
 
     const reqId = ++previewRequestId;
     try {
@@ -359,9 +509,8 @@
       const blob = await md2pdfAPI.previewPDF(buildRenderRequestBody());
       if (reqId !== previewRequestId) return;
 
-      if (state.previewUrl) URL.revokeObjectURL(state.previewUrl);
-      state.previewUrl = URL.createObjectURL(blob);
-      $('previewFrame').src = state.previewUrl;
+      await loadPdfPreviewBlob(blob, reqId);
+      if (reqId !== previewRequestId) return;
 
       setEditorStatus('已渲染');
       setStatus('预览就绪');
@@ -370,6 +519,12 @@
       console.error('Preview error:', error);
       setEditorStatus('渲染失败');
       setStatus('预览失败: ' + error.message);
+      clearPdfPreview();
+      const emptyEl = $('previewEmpty');
+      if (emptyEl) {
+        emptyEl.hidden = false;
+        emptyEl.textContent = '预览失败：' + error.message;
+      }
     }
   }
 

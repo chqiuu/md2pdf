@@ -22,6 +22,19 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 // Serve static files
 app.use(express.static(path.join(__dirname, '..', 'web')));
 
+// PDF.js（浏览器端预览，与 package 版本一致）
+const pdfjsBuild = path.join(__dirname, '..', 'node_modules', 'pdfjs-dist', 'legacy', 'build');
+app.use(
+  '/vendor/pdfjs',
+  express.static(pdfjsBuild, {
+    setHeaders(res, filePath) {
+      if (filePath.endsWith('.mjs')) {
+        res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+      }
+    }
+  })
+);
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error('[Error]', err.message);

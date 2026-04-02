@@ -71,14 +71,17 @@
         <div class="preview-header">
           <span>PDF 预览</span>
           <div class="preview-controls">
-            <button id="zoomOut" class="btn-icon" title="缩小">➖</button>
+            <button id="zoomOut" class="btn-icon" title="缩小（相对适应宽度）">➖</button>
             <span id="zoomLevel">100%</span>
-            <button id="zoomIn" class="btn-icon" title="放大">➕</button>
+            <button id="zoomIn" class="btn-icon" title="放大（相对适应宽度）">➕</button>
             <button id="refreshPreview" class="btn-icon" title="刷新预览">🔄</button>
           </div>
         </div>
         <div class="preview-container">
-          <iframe id="previewFrame" class="preview-frame" title="PDF Preview"></iframe>
+          <div id="previewViewport" class="preview-viewport">
+            <p id="previewEmpty" class="preview-empty">输入内容后将在此显示 PDF 预览</p>
+            <div id="previewPdfPages" class="preview-pdf-pages" hidden></div>
+          </div>
         </div>
       </section>
 

@@ -19,6 +19,10 @@
   --checkbox-check: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none'%3E%3Cpath d='M2.5 6l2.5 2.5L9.5 3' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   /* 编辑 / 预览 / 侧栏 Tab 顶栏同高（需容纳 36px 图标按钮） */
   --column-header-height: 40px;
+  /* PDF 预览区：外框与画布间隙随主题变化，纸面仍为白底 */
+  --preview-area-bg: #e5e5e5;
+  --preview-viewport-bg: #d8d8d8;
+  --preview-page-shadow: 0 2px 12px rgba(0, 0, 0, 0.14);
 }
 
 * {
@@ -275,7 +279,7 @@ body {
 .preview-area {
   display: flex;
   flex-direction: column;
-  background: #e5e5e5;
+  background: var(--preview-area-bg);
   overflow: hidden;
   min-width: 0;
 }
@@ -314,25 +318,62 @@ body {
   flex: 1;
   min-height: 0;
   padding: 0;
-  overflow: auto;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   align-items: stretch;
 }
 
-.preview-frame {
+.preview-viewport {
   flex: 1;
-  width: 100%;
   min-height: 0;
-  height: 100%;
-  background: white;
-  box-shadow: none;
-  border: none;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  background: var(--preview-viewport-bg);
+  box-sizing: border-box;
+  padding: 12px;
+}
+
+.preview-empty {
+  margin: 0;
+  padding: 24px 16px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-light);
+}
+
+.preview-pdf-pages {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  min-height: min-content;
+}
+
+.preview-pdf-pages[hidden] {
+  display: none !important;
+}
+
+.preview-pdf-page-wrap {
+  flex-shrink: 0;
+  line-height: 0;
+  border-radius: 2px;
+  box-shadow: var(--preview-page-shadow);
+}
+
+.preview-pdf-page-canvas {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  background: #fff;
+  border-radius: 2px;
+  vertical-align: top;
 }
 
 @media screen and (max-width: 768px) {
-  .preview-frame {
-    border-radius: 0;
+  .preview-viewport {
+    padding: 8px;
   }
 }
 
@@ -972,7 +1013,7 @@ input[type="checkbox"]:focus-visible {
   .preview-area {
     min-height: 250px;
     max-height: 400px;
-    background: #e0e0e0;
+    background: var(--preview-area-bg);
   }
 
   .preview-header {
@@ -1149,6 +1190,9 @@ html.theme-dark {
   --primary-dark: #4a8cd6;
   --shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
   scrollbar-color: #444 #1a1a1a;
+  --preview-area-bg: #181818;
+  --preview-viewport-bg: #141414;
+  --preview-page-shadow: 0 4px 24px rgba(0, 0, 0, 0.55);
 }
 
 html.theme-dark .header,
@@ -1156,15 +1200,6 @@ html.theme-dark .editor-area,
 html.theme-dark .control-panel,
 html.theme-dark .modal-content {
   background: var(--bg-white);
-}
-
-html.theme-dark .preview-area {
-  background: #181818;
-}
-
-html.theme-dark .preview-frame {
-  background: #252525;
-  box-shadow: none;
 }
 
 html.theme-dark :is(h1, h2, h3, h4, h5, h6) {
