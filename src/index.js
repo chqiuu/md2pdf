@@ -13,7 +13,7 @@ const aiRoutes = require('./routes/ai');
 const fontRoutes = require('./routes/fonts');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 33002;
 
 // Middleware
 app.use(express.json({ limit: '50mb' }));

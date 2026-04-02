@@ -19,8 +19,13 @@
       return window.location.origin + basePath;
     }
 
-    // 默认端口
-    return 'http://localhost:33000';
+    // 通过 HTTP(S) 打开（如 npm start 提供的页面）：与后端同源，避免端口写死
+    if (window.location.protocol === 'http:' || window.location.protocol === 'https:') {
+      return window.location.origin;
+    }
+
+    // file:// 等：与 src/index.js 默认 PORT 一致
+    return 'http://localhost:33002';
   }
 
   let serverUrl = getDefaultServerUrl();
@@ -54,7 +59,6 @@
 
     if (options.body) {
       fetchOptions.body = JSON.stringify(options.body);
-      delete fetchOptions.body;
     }
 
     const response = await fetch(url, fetchOptions);
@@ -114,9 +118,16 @@
     });
   }
 
-  // Render
+  // Render（与 previewPDF 请求体相同，导出为 attachment；预览为 inline）
   async function renderPDF(options) {
     return api('/api/render', {
+      method: 'POST',
+      body: options
+    });
+  }
+
+  async function previewPDF(options) {
+    return api('/api/render/preview', {
       method: 'POST',
       body: options
     });
@@ -160,6 +171,7 @@
     generateCSS,
     // Render
     renderPDF,
+    previewPDF,
     batchRender,
     // AI
     getAIProviders,

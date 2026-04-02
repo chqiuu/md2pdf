@@ -174,6 +174,10 @@
     });
 
     $('tocTitle').addEventListener('input', debouncedPreview);
+    $('paperSize').addEventListener('change', debouncedPreview);
+    $('includeBackground').addEventListener('change', debouncedPreview);
+    $('watermarkText').addEventListener('input', debouncedPreview);
+    $('outputFilename').addEventListener('input', debouncedPreview);
     $('renderBtn').addEventListener('click', renderPDF);
     $('refreshPreview').addEventListener('click', updatePreview);
   }
@@ -252,42 +256,61 @@
   // AI
   $('generateTemplateBtn')?.addEventListener('click', generateTemplate);
 
-  // Preview
+  // Preview：与导出共用 Playwright PDF 管线，保证版式一致（iframe 内嵌 PDF）
+  const PREVIEW_DEBOUNCE_MS = 600;
   let previewTimeout = null;
+  let previewRequestId = 0;
+
+  function buildRenderRequestBody() {
+    const tocEnabled = $('includeToc').checked;
+    const toc = tocEnabled ? { enabled: true, title: $('tocTitle').value || '目录' } : null;
+    const watermarkText = $('watermarkText').value.trim();
+    const watermark = watermarkText ? {
+      enabled: true,
+      type: 'text',
+      content: watermarkText,
+      position: 'center',
+      opacity: 0.1,
+      angle: -45
+    } : null;
+    return {
+      markdown: state.markdown,
+      template: state.currentTemplate,
+      css: state.customCSS,
+      options: {
+        title: $('outputFilename').value || 'document',
+        format: $('paperSize').value,
+        printBackground: $('includeBackground').checked
+      },
+      toc,
+      watermark
+    };
+  }
+
   function debouncedPreview() {
     clearTimeout(previewTimeout);
-    previewTimeout = setTimeout(updatePreview, 300);
+    previewTimeout = setTimeout(updatePreview, PREVIEW_DEBOUNCE_MS);
   }
 
   async function updatePreview() {
     if (!state.markdown) return;
 
+    const reqId = ++previewRequestId;
     try {
       setEditorStatus('渲染中...');
-      setStatus('正在渲染预览...');
+      setStatus('正在生成 PDF 预览...');
 
-      const tocEnabled = $('includeToc').checked;
-      const toc = tocEnabled ? {
-        enabled: true,
-        title: $('tocTitle').value || '目录'
-      } : null;
+      const blob = await md2pdfAPI.previewPDF(buildRenderRequestBody());
+      if (reqId !== previewRequestId) return;
 
-      const result = await md2pdfAPI.parsePreview(
-        state.markdown,
-        state.currentTemplate,
-        state.customCSS,
-        toc
-      );
-
-      // Display preview
       if (state.previewUrl) URL.revokeObjectURL(state.previewUrl);
-      const blob = new Blob([result.data.html], { type: 'text/html' });
       state.previewUrl = URL.createObjectURL(blob);
       $('previewFrame').src = state.previewUrl;
 
       setEditorStatus('已渲染');
       setStatus('预览就绪');
     } catch (error) {
+      if (reqId !== previewRequestId) return;
       console.error('Preview error:', error);
       setEditorStatus('渲染失败');
       setStatus('预览失败: ' + error.message);
@@ -306,32 +329,7 @@
       $('renderBtn').disabled = true;
       $('renderBtn').textContent = '生成中...';
 
-      const tocEnabled = $('includeToc').checked;
-      const toc = tocEnabled ? { enabled: true, title: $('tocTitle').value || '目录' } : null;
-
-      // Watermark options
-      const watermarkText = $('watermarkText').value.trim();
-      const watermark = watermarkText ? {
-        enabled: true,
-        type: 'text',
-        content: watermarkText,
-        position: 'center',
-        opacity: 0.1,
-        angle: -45
-      } : null;
-
-      const blob = await md2pdfAPI.renderPDF({
-        markdown: state.markdown,
-        template: state.currentTemplate,
-        css: state.customCSS,
-        options: {
-          title: $('outputFilename').value || 'document',
-          format: $('paperSize').value,
-          printBackground: $('includeBackground').checked
-        },
-        toc,
-        watermark
-      });
+      const blob = await md2pdfAPI.renderPDF(buildRenderRequestBody());
 
       md2pdfUtils.downloadBlob(blob, ($('outputFilename').value || 'document') + '.pdf');
       setStatus('PDF 生成完成');
