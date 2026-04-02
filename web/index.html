@@ -2,8 +2,19 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
+  <script>
+    (function () {
+      try {
+        var k = 'md2pdf_theme';
+        var t = localStorage.getItem(k) || 'system';
+        if (t !== 'light' && t !== 'dark' && t !== 'system') t = 'system';
+        var dark = t === 'dark' || (t === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        if (dark) document.documentElement.classList.add('theme-dark');
+      } catch (e) {}
+    })();
+  </script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="theme-color" content="#4a90d9">
+  <meta name="theme-color" content="#4a90d9" id="metaThemeColor">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>md2pdf - Markdown 转 PDF</title>
@@ -18,36 +29,32 @@
         <span class="tagline">Markdown → PDF 转换工具</span>
       </div>
       <div class="header-center">
-        <select id="templateSelect" class="template-select">
-          <option value="">选择模板...</option>
-        </select>
-        <button id="refreshTemplates" class="btn-icon" title="刷新模板">🔄</button>
       </div>
       <div class="header-right">
+        <div class="header-upload" id="dropZone" title="点击选择或拖拽 MD 文件到此处">
+          <input type="file" id="fileInput" accept=".md,.markdown" hidden>
+          <button type="button" id="selectFileBtn" class="btn btn-secondary btn-sm">打开 MD</button>
+        </div>
+        <div class="header-template-select">
+          <select id="templateSelect" class="select theme-select-compact">
+            <option value="">选择模板...</option>
+          </select>
+          <button id="refreshTemplates" class="btn-icon" title="刷新模板">🔄</button>
+        </div>
+        <label class="theme-select-wrap" title="界面配色">
+          <span class="visually-hidden">界面配色</span>
+          <select id="themeSelect" class="select theme-select-compact" aria-label="界面配色">
+            <option value="system">跟随系统</option>
+            <option value="light">浅色</option>
+            <option value="dark">深色</option>
+          </select>
+        </label>
         <button id="settingsBtn" class="btn-icon" title="设置">⚙️</button>
       </div>
     </header>
 
     <!-- Main Content -->
     <main class="main">
-      <!-- File Area -->
-      <aside class="file-area">
-        <div class="file-upload" id="dropZone">
-          <div class="upload-hint">
-            <span class="upload-icon">📄</span>
-            <button id="selectFileBtn" class="btn btn-primary btn-sm">选择 MD 文件</button>
-          </div>
-          <input type="file" id="fileInput" accept=".md,.markdown" style="display:none">
-        </div>
-
-        <div class="recent-files">
-          <h3>最近文件</h3>
-          <ul id="recentFilesList" class="recent-list">
-            <li class="empty-hint">暂无最近文件</li>
-          </ul>
-        </div>
-      </aside>
-
       <!-- Editor Area -->
       <section class="editor-area">
         <div class="editor-header">
@@ -55,7 +62,7 @@
           <span id="editorStatus" class="status">就绪</span>
         </div>
         <div class="editor-container">
-          <textarea id="editor" class="editor" placeholder="在此输入 Markdown 内容，或拖拽文件上传..."></textarea>
+          <textarea id="editor" class="editor" placeholder="在此输入 Markdown，或使用顶部「打开 MD」、将 .md 文件拖入编辑区..."></textarea>
         </div>
       </section>
 

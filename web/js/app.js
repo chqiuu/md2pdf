@@ -18,8 +18,60 @@
   // DOM Elements cache
   const $ = (id) => document.getElementById(id);
 
+  const THEME_STORAGE_KEY = 'md2pdf_theme';
+
+  function getStoredThemePreference() {
+    try {
+      const v = localStorage.getItem(THEME_STORAGE_KEY);
+      return v === 'light' || v === 'dark' || v === 'system' ? v : 'system';
+    } catch (e) {
+      return 'system';
+    }
+  }
+
+  function isEffectiveDarkMode(preference) {
+    if (preference === 'dark') return true;
+    if (preference === 'light') return false;
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  }
+
+  function applyTheme() {
+    const pref = getStoredThemePreference();
+    const dark = isEffectiveDarkMode(pref);
+    document.documentElement.classList.toggle('theme-dark', dark);
+    const meta = document.getElementById('metaThemeColor');
+    if (meta) {
+      meta.setAttribute('content', dark ? '#1e1e1e' : '#4a90d9');
+    }
+  }
+
+  function setupTheme() {
+    const sel = $('themeSelect');
+    if (sel) {
+      sel.value = getStoredThemePreference();
+      sel.addEventListener('change', () => {
+        try {
+          localStorage.setItem(THEME_STORAGE_KEY, sel.value);
+        } catch (e) {}
+        applyTheme();
+      });
+    }
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    const onSystemChange = () => {
+      if (getStoredThemePreference() === 'system') applyTheme();
+    };
+    if (mq.addEventListener) {
+      mq.addEventListener('change', onSystemChange);
+    } else {
+      mq.addListener(onSystemChange);
+    }
+    applyTheme();
+  }
+
   // Initialize
   function init() {
+    setupTheme();
+
     // Load settings
     const savedServerUrl = localStorage.getItem('md2pdf_server_url');
     if (savedServerUrl) {
@@ -187,20 +239,24 @@
     $('selectFileBtn').addEventListener('click', () => $('fileInput').click());
     $('fileInput').addEventListener('change', (e) => handleFile(e.target.files[0]));
 
-    const dropZone = $('dropZone');
-    dropZone.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      dropZone.classList.add('dragover');
-    });
-    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
-    dropZone.addEventListener('drop', (e) => {
-      e.preventDefault();
-      dropZone.classList.remove('dragover');
-      const file = e.dataTransfer.files[0];
-      if (file && (file.name.endsWith('.md') || file.name.endsWith('.markdown'))) {
-        handleFile(file);
-      }
-    });
+    function bindMdDrop(el) {
+      el.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        el.classList.add('dragover');
+      });
+      el.addEventListener('dragleave', () => el.classList.remove('dragover'));
+      el.addEventListener('drop', (e) => {
+        e.preventDefault();
+        el.classList.remove('dragover');
+        const file = e.dataTransfer.files[0];
+        if (file && (file.name.endsWith('.md') || file.name.endsWith('.markdown'))) {
+          handleFile(file);
+        }
+      });
+    }
+
+    bindMdDrop($('dropZone'));
+    bindMdDrop(document.querySelector('.editor-area'));
   }
 
   // Modal
