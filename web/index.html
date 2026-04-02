@@ -118,6 +118,9 @@
           <div class="form-group" id="tocOptions" style="display:none">
             <label>目录标题</label>
             <input type="text" id="tocTitle" class="input" value="目录" placeholder="目录">
+            <p class="toc-hint" role="note">
+              <strong>说明：</strong>若只调 <code>/api/parse/preview</code> 返回的 HTML，目录中的页码会显示为「?」（未经过 PDF 双次渲染）。通过本页的 <strong>PDF 预览</strong> 与 <strong>生成 PDF</strong>（接口 <code>/api/render/preview</code>、<code>/api/render</code>）得到的 PDF 中会显示正确页码。
+            </p>
           </div>
 
           <div class="form-group">

@@ -138,22 +138,23 @@ async function getPageCount(html, options = {}) {
 
 /**
  * Generate TOC HTML
- * @param {Array} headings - Array of {level, text, anchor, page}
- * @param {object} options - TOC options
+ * @param {Array} headings - Array of {level, text, anchor}
+ * @param {object} options - TOC options；pageByAnchor 为 { [anchor]: number } 时显示页码
  * @returns {string} TOC HTML
  */
 function generateTOCHTML(headings, options = {}) {
   const {
     title = '目录',
     minLevel = 1,
-    maxLevel = 3
+    maxLevel = 3,
+    pageByAnchor = null
   } = options;
 
   if (!headings || headings.length === 0) {
     return '';
   }
 
-  let html = `<div class="toc"><h1 class="toc-title">${title}</h1>`;
+  let html = `<div class="toc"><h1 class="toc-title">${escapeHtml(title)}</h1>`;
 
   for (const heading of headings) {
     if (heading.level < minLevel || heading.level > maxLevel) {
@@ -161,12 +162,20 @@ function generateTOCHTML(headings, options = {}) {
     }
 
     const indent = (heading.level - minLevel) * 20;
+    const page =
+      pageByAnchor && pageByAnchor[heading.anchor] != null
+        ? String(pageByAnchor[heading.anchor])
+        : '?';
+    const hrefAttr = heading.anchor
+      ? `#${String(heading.anchor).replace(/&/g, '&amp;').replace(/"/g, '&quot;')}`
+      : '#';
+
     html += `
-      <div class="toc-item level-${heading.level}" style="padding-left: ${indent}pt;">
+      <a class="toc-item level-${heading.level}" href="${hrefAttr}" style="padding-left: ${indent}pt;">
         <span class="toc-text">${escapeHtml(heading.text)}</span>
         <span class="toc-dots"></span>
-        <span class="toc-page">${heading.page || '?'}</span>
-      </div>
+        <span class="toc-page">${page}</span>
+      </a>
     `;
   }
 
@@ -182,26 +191,37 @@ function generateTOCHTML(headings, options = {}) {
 function getTOCStyles() {
   return `
 .toc {
-  margin: 24pt 0;
-  padding: 16pt;
+  margin: 0;
+  padding: 24pt 16pt 32pt;
   background: #f9f9f9;
-  border-radius: 4px;
+  border-radius: 0;
+  page-break-after: always;
+  break-after: page;
+  min-height: 0;
+  box-sizing: border-box;
 }
 
 .toc-title {
   font-size: 18pt;
   font-weight: bold;
-  margin-bottom: 16pt;
+  margin: 0 0 16pt;
   text-align: center;
   page-break-after: avoid;
 }
 
-.toc-item {
+a.toc-item {
   display: flex;
   align-items: baseline;
   padding: 6pt 0;
   font-size: 11pt;
   page-break-inside: avoid;
+  text-decoration: none;
+  color: inherit;
+  box-sizing: border-box;
+}
+
+a.toc-item:hover {
+  color: inherit;
 }
 
 .toc-item.level-2 {
@@ -222,10 +242,13 @@ function getTOCStyles() {
   margin: 0 8pt;
   position: relative;
   top: -4pt;
+  min-width: 8pt;
 }
 
 .toc-page {
   flex-shrink: 0;
+  min-width: 1.5em;
+  text-align: right;
   font-variant-numeric: tabular-nums;
 }
 `;

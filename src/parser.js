@@ -46,46 +46,52 @@ function escapeHtml(str) {
 }
 
 /**
- * Convert Markdown to HTML
- * @param {string} markdown - Markdown content
- * @param {object} options - Parser options
- * @returns {string} HTML content
+ * Parse Markdown to HTML with stable heading ids (for TOC / 锚点)
+ * @param {string} markdown
+ * @returns {{ html: string, headings: Array<{level: number, text: string, anchor: string}> }}
  */
-function parse(markdown, options = {}) {
+function parseDocument(markdown) {
   const md = createParser();
+  const tokens = md.parse(markdown, {});
+  const headings = [];
+  const slugCount = {};
 
-  // Parse markdown to HTML
-  let html = md.render(markdown);
+  for (let i = 0; i < tokens.length; i++) {
+    const t = tokens[i];
+    if (t.type !== 'heading_open') continue;
+    const inline = tokens[i + 1];
+    if (!inline || inline.type !== 'inline') continue;
 
-  // Wrap in container for styling
-  html = `<div class="md-content">${html}</div>`;
+    const level = parseInt(t.tag.substring(1), 10);
+    const text = inline.content;
+    const base = textToAnchor(text);
+    slugCount[base] = (slugCount[base] || 0) + 1;
+    const id = slugCount[base] === 1 ? base : `${base}-${slugCount[base]}`;
+    t.attrSet('id', id);
+    headings.push({ level, text, anchor: id });
+  }
 
-  return html;
+  const inner = md.renderer.render(tokens, md.options, {});
+  const html = `<div class="md-content">${inner}</div>`;
+  return { html, headings };
 }
 
 /**
- * Extract headings for TOC generation
+ * Convert Markdown to HTML
+ * @param {string} markdown - Markdown content
+ * @returns {string} HTML content
+ */
+function parse(markdown) {
+  return parseDocument(markdown).html;
+}
+
+/**
+ * Extract headings for TOC generation（与 parseDocument 中 id 规则一致）
  * @param {string} markdown
  * @returns {Array} Array of {level, text, anchor}
  */
 function extractHeadings(markdown) {
-  const headings = [];
-  const md = createParser();
-  const tokens = md.parse(markdown, {});
-
-  for (const token of tokens) {
-    if (token.type === 'heading_open') {
-      const level = parseInt(token.tag.substring(1));
-      const inlineToken = tokens[tokens.indexOf(token) + 1];
-      if (inlineToken && inlineToken.type === 'inline') {
-        const text = inlineToken.content;
-        const anchor = textToAnchor(text);
-        headings.push({ level, text, anchor });
-      }
-    }
-  }
-
-  return headings;
+  return parseDocument(markdown).headings;
 }
 
 /**
@@ -101,6 +107,7 @@ function textToAnchor(text) {
 }
 
 module.exports = {
+  parseDocument,
   parse,
   extractHeadings,
   createParser

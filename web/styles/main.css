@@ -397,6 +397,31 @@ body {
   color: var(--text);
 }
 
+.toc-hint {
+  margin: 10px 0 0;
+  padding: 10px 12px;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--text-light);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.toc-hint code {
+  font-size: 11px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--bg-white);
+  border: 1px solid var(--border);
+  word-break: break-all;
+}
+
+.toc-hint strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
 .input,
 .select,
 .textarea {

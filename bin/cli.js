@@ -8,9 +8,9 @@ const { Command } = require('commander');
 const fs = require('fs');
 const path = require('path');
 
-const parser = require('../src/parser');
-const renderer = require('../src/renderer');
 const templateEngine = require('../src/template-engine');
+const renderer = require('../src/renderer');
+const { markdownToPdfBuffer } = require('../src/pdf-pipeline');
 
 const program = new Command();
 
@@ -44,20 +44,16 @@ program
         process.exit(1);
       }
 
-      // Parse markdown
-      console.log('Parsing markdown...');
-      let htmlContent = parser.parse(markdown);
-      const headings = parser.extractHeadings(markdown);
-
-      // Get CSS
       let css = '';
+      let templateName;
       if (options.css && fs.existsSync(options.css)) {
         css = fs.readFileSync(options.css, 'utf8');
+        templateName = 'custom';
         console.log('Using custom CSS');
       } else if (options.template) {
         const template = templateEngine.getTemplate(options.template);
         if (template) {
-          css = template.css;
+          templateName = options.template;
           console.log('Using template:', options.template);
         } else {
           console.error('Template not found:', options.template);
@@ -65,46 +61,32 @@ program
         }
       }
 
-      // Generate TOC
-      let tocHTML = '';
-      if (options.toc && headings.length > 0) {
-        console.log('Generating TOC...');
-        tocHTML = renderer.generateTOCHTML(headings, { title: options.tocTitle });
-        css += renderer.getTOCStyles();
-      }
-
-      // Insert TOC
-      if (tocHTML) {
-        const firstPTagIndex = htmlContent.indexOf('<p>');
-        if (firstPTagIndex > 0) {
-          htmlContent = htmlContent.slice(0, firstPTagIndex) + tocHTML + htmlContent.slice(firstPTagIndex);
-        } else {
-          htmlContent = tocHTML + htmlContent;
-        }
-      }
-
-      // Add watermark
-      if (options.watermark) {
-        css += renderer.getWatermarkStyles({
-          content: options.watermark,
-          position: 'center',
-          opacity: 0.1
-        });
-        htmlContent = htmlContent.replace('</body>', '<div class="watermark">' + options.watermark + '</div></body>');
-      }
-
-      // Generate HTML document
-      const documentHTML = templateEngine.generateHTMLDocument(htmlContent, css, {
-        title: path.basename(inputFile, path.extname(inputFile))
-      });
-
-      // Render PDF
-      console.log('Rendering PDF...');
       const margin = options.margin + 'cm';
-      const pdfBuffer = await renderer.render(documentHTML, {
-        format: options.format,
-        printBackground: true,
-        margin: { top: margin, right: margin, bottom: margin, left: margin }
+      console.log('Rendering PDF...');
+      const pdfBuffer = await markdownToPdfBuffer({
+        markdown,
+        template: templateName,
+        css: templateName === 'custom' ? css : undefined,
+        options: {
+          title: path.basename(inputFile, path.extname(inputFile)),
+          format: options.format,
+          printBackground: true,
+          displayHeaderFooter: false,
+          margin: { top: margin, right: margin, bottom: margin, left: margin }
+        },
+        toc:
+          options.toc
+            ? { enabled: true, title: options.tocTitle || '目录' }
+            : undefined,
+        watermark: options.watermark
+          ? {
+              enabled: true,
+              type: 'text',
+              content: options.watermark,
+              position: 'center',
+              opacity: 0.1
+            }
+          : undefined
       });
 
       // Write output

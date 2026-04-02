@@ -3,95 +3,9 @@
  */
 
 const express = require('express');
-const parser = require('../parser');
-const renderer = require('../renderer');
-const templateEngine = require('../template-engine');
+const { markdownToPdfBuffer } = require('../pdf-pipeline');
 
 const router = express.Router();
-
-/**
- * 与导出共用：Markdown + 模板/选项 → PDF Buffer（Playwright page.pdf）
- */
-async function markdownToPdfBuffer(body) {
-  const { markdown, template, css: customCSS, options, toc, watermark } = body;
-  if (!markdown) {
-    const err = new Error('Markdown content is required');
-    err.status = 400;
-    throw err;
-  }
-
-  let htmlContent = parser.parse(markdown);
-  const headings = parser.extractHeadings(markdown);
-
-  let css = customCSS || '';
-  if (!css && template && template !== 'custom') {
-    const templateData = templateEngine.getTemplate(template);
-    if (templateData) {
-      css = templateData.css;
-    }
-  }
-
-  let tocHTML = '';
-  if (toc && toc.enabled && headings.length > 0) {
-    const tocOptions = {
-      title: toc.title || '目录',
-      minLevel: toc.minLevel || 1,
-      maxLevel: toc.maxLevel || 3
-    };
-    tocHTML = renderer.generateTOCHTML(headings, tocOptions);
-    css += renderer.getTOCStyles();
-  }
-
-  if (tocHTML) {
-    const firstPTagIndex = htmlContent.indexOf('<p>');
-    if (firstPTagIndex > 0) {
-      htmlContent = htmlContent.slice(0, firstPTagIndex) + tocHTML + htmlContent.slice(firstPTagIndex);
-    } else {
-      htmlContent = tocHTML + htmlContent;
-    }
-  }
-
-  if (watermark && watermark.enabled) {
-    const watermarkCSS = renderer.getWatermarkStyles({
-      type: watermark.type || 'text',
-      content: watermark.content || watermark.text || '',
-      position: watermark.position || 'center',
-      opacity: watermark.opacity || 0.1,
-      angle: watermark.angle || -45,
-      fontSize: watermark.fontSize || '48px',
-      color: watermark.color || '#cccccc'
-    });
-    css += watermarkCSS;
-
-    const watermarkContent = watermark.type === 'image'
-      ? `<img src="${watermark.content || watermark.text}" class="watermark">`
-      : `<div class="watermark">${watermark.content || watermark.text}</div>`;
-    htmlContent = htmlContent.replace('</body>', `${watermarkContent}</body>`);
-  }
-
-  const documentHTML = templateEngine.generateHTMLDocument(htmlContent, css, {
-    title: options?.title || 'Document',
-    fonts: options?.fonts || []
-  });
-
-  return renderer.render(documentHTML, {
-    format: options?.format || 'A4',
-    printBackground: options?.printBackground !== false,
-    margin: options?.margin || {
-      top: '2cm',
-      right: '2.5cm',
-      bottom: '2cm',
-      left: '2.5cm'
-    },
-    displayHeaderFooter: options?.displayHeaderFooter !== false,
-    headerTemplate: options?.headerTemplate || '<div></div>',
-    footerTemplate: options?.footerTemplate || `
-        <div style="font-size: 10px; width: 100%; text-align: center;">
-          <span class="pageNumber"></span> / <span class="totalPages"></span>
-        </div>
-      `
-  });
-}
 
 /**
  * POST /api/render/preview - 与导出相同的 PDF，供 iframe 内嵌预览（inline）
@@ -166,55 +80,11 @@ router.post('/batch', async (req, res) => {
     for (const file of files) {
       try {
         const { name, markdown } = file;
-
-        // Parse markdown
-        let htmlContent = parser.parse(markdown);
-        const headings = parser.extractHeadings(markdown);
-
-        // Get template CSS
-        let css = '';
-        if (template && template !== 'custom') {
-          const templateData = templateEngine.getTemplate(template);
-          if (templateData) {
-            css = templateData.css;
-          }
-        }
-
-        // Add TOC if requested
-        let tocHTML = '';
-        if (toc && toc.enabled && headings.length > 0) {
-          const tocOptions = {
-            title: toc.title || '目录',
-            minLevel: toc.minLevel || 1,
-            maxLevel: toc.maxLevel || 3
-          };
-          tocHTML = renderer.generateTOCHTML(headings, tocOptions);
-          css += renderer.getTOCStyles();
-        }
-
-        if (tocHTML) {
-          const firstPTagIndex = htmlContent.indexOf('<p>');
-          if (firstPTagIndex > 0) {
-            htmlContent = htmlContent.slice(0, firstPTagIndex) + tocHTML + htmlContent.slice(firstPTagIndex);
-          } else {
-            htmlContent = tocHTML + htmlContent;
-          }
-        }
-
-        const documentHTML = templateEngine.generateHTMLDocument(htmlContent, css, {
-          title: name,
-          fonts: options?.fonts || []
-        });
-
-        const pdfBuffer = await renderer.render(documentHTML, {
-          format: options?.format || 'A4',
-          printBackground: options?.printBackground !== false,
-          margin: options?.margin || {
-            top: '2cm',
-            right: '2.5cm',
-            bottom: '2cm',
-            left: '2.5cm'
-          }
+        const pdfBuffer = await markdownToPdfBuffer({
+          markdown,
+          template,
+          options,
+          toc
         });
 
         results.success++;

@@ -6,6 +6,7 @@ const express = require('express');
 const parser = require('../parser');
 const renderer = require('../renderer');
 const templateEngine = require('../template-engine');
+const { insertTocInsideMdContent } = require('../toc-pdf');
 
 const router = express.Router();
 
@@ -22,8 +23,7 @@ router.post('/', (req, res) => {
       });
     }
 
-    // Parse markdown
-    const htmlContent = parser.parse(markdown);
+    const { html: htmlContent } = parser.parseDocument(markdown);
 
     // Get template CSS
     let css = '';
@@ -64,11 +64,8 @@ router.post('/preview', (req, res) => {
       });
     }
 
-    // Parse markdown
-    let htmlContent = parser.parse(markdown);
-
-    // Extract headings for TOC
-    const headings = parser.extractHeadings(markdown);
+    const { html: htmlContent0, headings } = parser.parseDocument(markdown);
+    let htmlContent = htmlContent0;
 
     // Get template CSS
     let css = customCSS || '';
@@ -91,14 +88,8 @@ router.post('/preview', (req, res) => {
       css += renderer.getTOCStyles();
     }
 
-    // Insert TOC after first paragraph or at beginning
     if (tocHTML) {
-      const firstPTagIndex = htmlContent.indexOf('<p>');
-      if (firstPTagIndex > 0) {
-        htmlContent = htmlContent.slice(0, firstPTagIndex) + tocHTML + htmlContent.slice(firstPTagIndex);
-      } else {
-        htmlContent = tocHTML + htmlContent;
-      }
+      htmlContent = insertTocInsideMdContent(htmlContent, tocHTML);
     }
 
     // Generate complete HTML document
